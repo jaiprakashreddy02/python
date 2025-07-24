@@ -37,12 +37,16 @@ st.dataframe(df2)
 
 # Filter by Country
 st.subheader("🌎 Students by Country")
-countries_df = pd.read_sql("SELECT DISTINCT Country FROM cleaned_data", conn)
 
-if not countries_df.empty:
-    countries = countries_df["Country"].dropna().tolist()
+# Run query and display the returned columns
+countries_df = pd.read_sql("SELECT DISTINCT * FROM cleaned_data", conn)
+st.write("Columns returned from Snowflake:", countries_df.columns.tolist())
+
+# Check if 'COUNTRY' column exists
+if "COUNTRY" in countries_df.columns:
+    countries = countries_df["COUNTRY"].dropna().unique().tolist()
     selected = st.selectbox("Select Country", countries)
-    filtered = pd.read_sql(f"SELECT * FROM cleaned_data WHERE Country = '{selected}'", conn)
+    filtered = pd.read_sql(f"SELECT * FROM cleaned_data WHERE COUNTRY = '{selected}'", conn)
     st.dataframe(filtered)
 else:
-    st.warning("⚠️ No countries found in the data.")
+    st.error("❌ 'COUNTRY' column not found in cleaned_data table. Please check the table schema.")
