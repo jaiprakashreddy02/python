@@ -15,9 +15,9 @@ conn = snowflake.connector.connect(
     schema=st.secrets["SNOWFLAKE_SCHEMA"]
 )
 
-# Load full table (excluding sensitive columns)
+# Main Query
 query_full = """
-SELECT FANID, FIRST_NAME, LAST_NAME, MAJOR, COUNTRY, ENROLLMENT_STATUS, GRADUATED_YEAR
+SELECT FANID, FULL_NAME, MAJOR, COUNTRY, ENROLLMENT_STATUS, GRADUATED_YEAR
 FROM cleaned_data
 """
 df = pd.read_sql(query_full, conn)
