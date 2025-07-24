@@ -15,11 +15,11 @@ conn = snowflake.connector.connect(
     schema=st.secrets["SNOWFLAKE_SCHEMA"]
 )
 
-# GPA by Major
-query1 = "SELECT Major, ROUND(AVG(GPA), 2) AS avg_gpa FROM cleaned_data GROUP BY Major ORDER BY avg_gpa DESC"
+query1 = "SELECT Major, COUNT(*) AS student_count FROM cleaned_data GROUP BY Major ORDER BY student_count DESC"
 df1 = pd.read_sql(query1, conn)
-st.subheader("📊 Average GPA by Major")
+st.subheader("📊 Student Count by Major")
 st.bar_chart(df1.set_index("Major"))
+
 
 # Enrollment Status Summary
 query2 = "SELECT Enrollment_Status, COUNT(*) AS count FROM cleaned_data GROUP BY Enrollment_Status"
