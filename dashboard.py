@@ -15,38 +15,63 @@ conn = snowflake.connector.connect(
     schema=st.secrets["SNOWFLAKE_SCHEMA"]
 )
 
-# Query 1: Student Count by Major
-query1 = "SELECT Major, COUNT(*) AS student_count FROM cleaned_data GROUP BY Major ORDER BY student_count DESC"
+# Load full table (excluding sensitive columns)
+query_full = """
+SELECT FANID, FIRST_NAME, LAST_NAME, MAJOR, COUNTRY, ENROLLMENT_STATUS, GRADUATED_YEAR
+FROM cleaned_data
+"""
+df = pd.read_sql(query_full, conn)
+
+# KPIs
+total_students = df.shape[0]
+unique_countries = df["COUNTRY"].nunique()
+unique_majors = df["MAJOR"].nunique()
+unique_years = df["GRADUATED_YEAR"].nunique()
+
+col1, col2, col3, col4 = st.columns(4)
+col1.metric("👨‍🎓 Total Students", total_students)
+col2.metric("🌍 Countries", unique_countries)
+col3.metric("📚 Majors", unique_majors)
+col4.metric("🎓 Grad Years", unique_years)
+
+st.markdown("---")
+
+# Filters
+st.sidebar.header("🔍 Filters")
+selected_major = st.sidebar.selectbox("Filter by Major", ["All"] + sorted(df["MAJOR"].dropna().unique()))
+selected_year = st.sidebar.selectbox("Filter by Graduated Year", ["All"] + sorted(df["GRADUATED_YEAR"].dropna().unique()))
+
+filtered_df = df.copy()
+if selected_major != "All":
+    filtered_df = filtered_df[filtered_df["MAJOR"] == selected_major]
+if selected_year != "All":
+    filtered_df = filtered_df[filtered_df["GRADUATED_YEAR"] == selected_year]
+
+# Display Filtered Table
+st.subheader("📋 Filtered Student Records")
+st.dataframe(filtered_df)
+
+# Visualization 1: Student Count by Major
+query1 = "SELECT MAJOR, COUNT(*) AS student_count FROM cleaned_data GROUP BY MAJOR ORDER BY student_count DESC"
 df1 = pd.read_sql(query1, conn)
-
-# Debugging support - show actual column names
-st.write("✅ Columns in df1:", df1.columns.tolist())
 st.subheader("📊 Student Count by Major")
+if "MAJOR" in df1.columns:
+    st.bar_chart(df1.set_index("MAJOR"))
 
-# Safely try to render bar chart
-if "MAJOR" in map(str.upper, df1.columns):
-    st.bar_chart(df1.set_index(df1.columns[0]))
-else:
-    st.warning("⚠️ 'Major' column not found in query results.")
-
-# Query 2: Enrollment Status Summary
-query2 = "SELECT Enrollment_Status, COUNT(*) AS count FROM cleaned_data GROUP BY Enrollment_Status"
+# Visualization 2: Enrollment Status Breakdown
+query2 = "SELECT ENROLLMENT_STATUS, COUNT(*) AS count FROM cleaned_data GROUP BY ENROLLMENT_STATUS"
 df2 = pd.read_sql(query2, conn)
-st.subheader("👨‍🎓 Enrollment Status")
-st.dataframe(df2)
+st.subheader("👨‍🏫 Enrollment Status Breakdown")
+st.bar_chart(df2.set_index("ENROLLMENT_STATUS"))
 
-# Filter by Country
+# Visualization 3: Students by Country
+query3 = "SELECT COUNTRY, COUNT(*) AS count FROM cleaned_data GROUP BY COUNTRY ORDER BY count DESC"
+df3 = pd.read_sql(query3, conn)
 st.subheader("🌎 Students by Country")
+st.bar_chart(df3.set_index("COUNTRY"))
 
-# Run query and display the returned columns
-countries_df = pd.read_sql("SELECT DISTINCT * FROM cleaned_data", conn)
-st.write("Columns returned from Snowflake:", countries_df.columns.tolist())
-
-# Check if 'COUNTRY' column exists
-if "COUNTRY" in countries_df.columns:
-    countries = countries_df["COUNTRY"].dropna().unique().tolist()
-    selected = st.selectbox("Select Country", countries)
-    filtered = pd.read_sql(f"SELECT * FROM cleaned_data WHERE COUNTRY = '{selected}'", conn)
-    st.dataframe(filtered)
-else:
-    st.error("❌ 'COUNTRY' column not found in cleaned_data table. Please check the table schema.")
+# Visualization 4: Graduation Year Trend
+query4 = "SELECT GRADUATED_YEAR, COUNT(*) AS count FROM cleaned_data GROUP BY GRADUATED_YEAR ORDER BY GRADUATED_YEAR"
+df4 = pd.read_sql(query4, conn)
+st.subheader("📈 Graduation Year Trend")
+st.line_chart(df4.set_index("GRADUATED_YEAR"))
