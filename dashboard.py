@@ -27,12 +27,6 @@ df2 = pd.read_sql(query2, conn)
 st.subheader("👨‍🎓 Enrollment Status")
 st.dataframe(df2)
 
-# Honors Distribution
-query3 = "SELECT Honors_Flag, COUNT(*) AS count FROM cleaned_data GROUP BY Honors_Flag"
-df3 = pd.read_sql(query3, conn)
-st.subheader("🏅 Honors Distribution")
-st.bar_chart(df3.set_index("Honors_Flag"))
-
 # Filter by Country
 st.subheader("🌎 Students by Country")
 countries = pd.read_sql("SELECT DISTINCT Country FROM cleaned_data", conn)["Country"]
